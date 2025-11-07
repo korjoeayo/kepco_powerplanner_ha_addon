@@ -1,7 +1,8 @@
 name: "한전 파워플래너"
-version: "0.1.0"
+version: "0.1.1"
 slug: "kepco_power_planner"
 description: "한전 파워플래너에서 데이터를 가져오는 애드온입니다."
+logo: true
 arch:
   - "aarch64"
   - "amd64"
@@ -9,9 +10,9 @@ arch:
   - "armv7"
   - "i386"
 init: false
+api: true
 hassio_api: true
 homeassistant_api: true
-api: true
 options:
   RSA_USER_ID: ""
   RSA_USER_PWD: ""
