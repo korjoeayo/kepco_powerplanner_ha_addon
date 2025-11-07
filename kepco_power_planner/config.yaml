@@ -9,8 +9,9 @@ arch:
   - "armv7"
   - "i386"
 init: false
-api: true
 hassio_api: true
+homeassistant_api: true
+api: true
 options:
   RSA_USER_ID: ""
   RSA_USER_PWD: ""
