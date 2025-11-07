@@ -10,6 +10,9 @@ from selenium.webdriver.support import expected_conditions as EC
 
 # --- Home Assistant API Configuration ---
 SUPERVISOR_TOKEN = os.environ.get("SUPERVISOR_TOKEN")
+if not SUPERVISOR_TOKEN:
+    raise ValueError("SUPERVISOR_TOKEN environment variable not set. Please ensure the add-on has API access enabled and has been restarted.")
+
 API_URL = "http://supervisor/core/api"
 HEADERS = {
     "Authorization": f"Bearer {SUPERVISOR_TOKEN}",
