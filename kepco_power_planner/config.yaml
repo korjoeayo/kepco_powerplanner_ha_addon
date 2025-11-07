@@ -14,6 +14,8 @@ hassio_api: true
 options:
   RSA_USER_ID: ""
   RSA_USER_PWD: ""
+  update_interval: 30
 schema:
   RSA_USER_ID: "str"
   RSA_USER_PWD: "password"
+  update_interval: "int(1,)"
