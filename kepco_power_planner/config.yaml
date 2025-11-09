@@ -13,7 +13,6 @@ init: false
 api: true
 hassio_api: true
 homeassistant_api: true
-environment: true
 options:
   accounts: []
   update_interval: 30
