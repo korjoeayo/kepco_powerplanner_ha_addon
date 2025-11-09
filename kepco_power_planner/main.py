@@ -1,4 +1,5 @@
 import os
+import json
 import time
 import requests
 from selenium import webdriver
@@ -32,8 +33,10 @@ def update_ha_sensor(entity_id, state, attributes):
         print(f"Error updating {entity_id}: {e}")
 
 # --- Selenium Scraping Logic ---
-RSA_USER_ID = os.environ.get("RSA_USER_ID")
-RSA_USER_PWD = os.environ.get("RSA_USER_PWD")
+ACCOUNTS_JSON = os.environ.get("ACCOUNTS")
+if not ACCOUNTS_JSON:
+    raise ValueError("ACCOUNTS environment variable not set.")
+ACCOUNTS = json.loads(ACCOUNTS_JSON)
 
 def create_sensor_set(cust_no, sensor_data):
     """Creates a set of sensors for a given customer number."""
@@ -150,75 +153,87 @@ def scrape_customer_data(driver, wait):
 
 
 # --- Main Execution ---
-chrome_options = Options()
-chrome_options.add_argument("--headless=new")
-chrome_options.add_argument("--no-sandbox")
-chrome_options.add_argument("--disable-dev-shm-usage")
-chrome_options.add_argument("--disable-gpu")
-chrome_options.add_argument("--disable-software-rasterizer")
-chrome_options.add_argument("--remote-debugging-port=9222")
-chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+for account in ACCOUNTS:
+    RSA_USER_ID = account.get("RSA_USER_ID")
+    RSA_USER_PWD = account.get("RSA_USER_PWD")
 
-service = Service(executable_path='/usr/bin/chromedriver')
-driver = webdriver.Chrome(service=service, options=chrome_options)
+    if not RSA_USER_ID or not RSA_USER_PWD:
+        print("Skipping account due to missing ID or PWD.")
+        continue
 
-try:
-    print("Starting KEPCO scrape job...")
-    driver.get("https://pp.kepco.co.kr/")
-    wait = WebDriverWait(driver, 20)
+    print(f"Processing account: {RSA_USER_ID}")
 
-    # Login
-    wait.until(EC.presence_of_element_located((By.ID, "RSA_USER_ID"))).send_keys(RSA_USER_ID)
-    driver.find_element(By.ID, "RSA_USER_PWD").send_keys(RSA_USER_PWD)
-    login_button = wait.until(EC.presence_of_element_located((By.ID, "intro_btn_indi")))
-    driver.execute_script("arguments[0].click();", login_button)
-    print("Logged in.")
+    chrome_options = Options()
+    chrome_options.add_argument("--headless=new")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--disable-software-rasterizer")
+    chrome_options.add_argument("--remote-debugging-port=9222")
+    chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
 
-    # Wait for main page to load after login
-    wait.until(EC.presence_of_element_located((By.ID, "country_id")))
-    
-    # Get all customer numbers
-    cust_no_select = driver.find_element(By.ID, "country_id")
-    cust_no_options = cust_no_select.find_elements(By.TAG_NAME, "option")
-    customer_numbers = [opt.get_attribute("value") for opt in cust_no_options]
-    print(f"Found customer numbers: {customer_numbers}")
+    service = Service(executable_path='/usr/bin/chromedriver')
+    driver = webdriver.Chrome(service=service, options=chrome_options)
 
-    # Iterate through each customer number
-    for i, cust_no in enumerate(customer_numbers):
-        print("-" * 20)
-        if i > 0:
-            print(f"Switching to customer number: {cust_no}")
-            
-            # Re-fetch dynamic IDs inside the loop
-            cust_no_select = driver.find_element(By.ID, "country_id")
-            sb_value = cust_no_select.get_attribute("sb")
-            sb_holder_id = f"sbHolder_{sb_value}"
-            sb_options_id = f"sbOptions_{sb_value}"
+    try:
+        print("Starting KEPCO scrape job...")
+        driver.get("https://pp.kepco.co.kr/")
+        wait = WebDriverWait(driver, 20)
 
-            sb_holder = wait.until(EC.element_to_be_clickable((By.ID, sb_holder_id)))
-            sb_holder.click()
-            
-            # Wait for the specific option to be visible
-            wait.until(EC.visibility_of_element_located((By.XPATH, f"//ul[@id='{sb_options_id}']/li/a[@rel='{cust_no}']")))
-            
-            # Click the option using JS to avoid interception
-            option_link = wait.until(EC.presence_of_element_located((By.XPATH, f"//a[@rel='{cust_no}']")))
-            driver.execute_script("arguments[0].click();", option_link)
+        # Login
+        wait.until(EC.presence_of_element_located((By.ID, "RSA_USER_ID"))).send_keys(RSA_USER_ID)
+        driver.find_element(By.ID, "RSA_USER_PWD").send_keys(RSA_USER_PWD)
+        login_button = wait.until(EC.presence_of_element_located((By.ID, "intro_btn_indi")))
+        driver.execute_script("arguments[0].click();", login_button)
+        print("Logged in.")
 
-            # Wait for data to update
-            wait.until(lambda d: d.find_element(By.ID, "F_AP_QT").text.strip() != "")
-            time.sleep(2) # Extra delay for AJAX
+        # Wait for main page to load after login
+        wait.until(EC.presence_of_element_located((By.ID, "country_id")))
+        
+        # Get all customer numbers
+        cust_no_select = driver.find_element(By.ID, "country_id")
+        cust_no_options = cust_no_select.find_elements(By.TAG_NAME, "option")
+        customer_numbers = [opt.get_attribute("value") for opt in cust_no_options]
+        print(f"Found customer numbers: {customer_numbers}")
 
-        # Scrape and update sensors
-        print(f"Scraping data for customer number: {cust_no}")
-        scraped_data = scrape_customer_data(driver, wait)
-        if scraped_data:
-            create_sensor_set(cust_no, scraped_data)
-            print(f"Successfully updated sensors for {cust_no}")
+        # Iterate through each customer number
+        for i, cust_no in enumerate(customer_numbers):
+            print("-" * 20)
+            if i > 0:
+                print(f"Switching to customer number: {cust_no}")
+                
+                # Re-fetch dynamic IDs inside the loop
+                cust_no_select = driver.find_element(By.ID, "country_id")
+                sb_value = cust_no_select.get_attribute("sb")
+                sb_holder_id = f"sbHolder_{sb_value}"
+                sb_options_id = f"sbOptions_{sb_value}"
 
-except Exception as e:
-    print(f"An unexpected error occurred: {e}")
+                sb_holder = wait.until(EC.element_to_be_clickable((By.ID, sb_holder_id)))
+                sb_holder.click()
+                
+                # Wait for the specific option to be visible
+                wait.until(EC.visibility_of_element_located((By.XPATH, f"//ul[@id='{sb_options_id}']/li/a[@rel='{cust_no}']")))
+                
+                # Click the option using JS to avoid interception
+                option_link = wait.until(EC.presence_of_element_located((By.XPATH, f"//a[@rel='{cust_no}']")))
+                driver.execute_script("arguments[0].click();", option_link)
 
-finally:
-    driver.quit()
-    print("Scrape job finished.")
+                # Wait for data to update
+                wait.until(lambda d: d.find_element(By.ID, "F_AP_QT").text.strip() != "")
+                time.sleep(2) # Extra delay for AJAX
+
+            # Scrape and update sensors
+            print(f"Scraping data for customer number: {cust_no}")
+            scraped_data = scrape_customer_data(driver, wait)
+            if scraped_data:
+                create_sensor_set(cust_no, scraped_data)
+                print(f"Successfully updated sensors for {cust_no}")
+
+    except Exception as e:
+        print(f"An unexpected error occurred for account {RSA_USER_ID}: {e}")
+
+    finally:
+        driver.quit()
+        print(f"Scrape job finished for account {RSA_USER_ID}.")
+
+print("All accounts processed.")
