@@ -20,13 +20,15 @@ HEADERS = {
     "content-type": "application/json",
 }
 
-def update_ha_sensor(entity_id, state, attributes):
+def update_ha_sensor(entity_id, state, attributes, unique_id=None):
     """Updates a Home Assistant sensor."""
     url = f"{API_URL}/states/{entity_id}"
     data = {
         "state": state,
         "attributes": attributes,
     }
+    if unique_id:
+        data["attributes"]["unique_id"] = unique_id
     try:
         response = requests.post(url, headers=HEADERS, json=data)
         response.raise_for_status()
@@ -154,14 +156,75 @@ try:
     print("Data scraped, updating Home Assistant sensors...")
 
     # Update Home Assistant sensors with cleaned data
-    update_ha_sensor("sensor.kepco_realtime_usage", realtime_usage, {"friendly_name": "실시간 사용량", "unit_of_measurement": "kWh", "icon": "mdi:flash"})
-    update_ha_sensor("sensor.kepco_predicted_usage", predicted_usage, {"friendly_name": "예상 사용량", "unit_of_measurement": "kWh", "icon": "mdi:flash-alert"})
-    update_ha_sensor("sensor.kepco_realtime_fee", realtime_fee, {"friendly_name": "실시간 요금", "unit_of_measurement": "원", "icon": "mdi:cash"})
-    update_ha_sensor("sensor.kepco_predicted_fee", predicted_fee, {"friendly_name": "예상 요금", "unit_of_measurement": "원", "icon": "mdi:cash-multiple"})
+    update_ha_sensor(
+        "sensor.kepco_realtime_usage",
+        realtime_usage,
+        {
+            "friendly_name": "실시간 사용량",
+            "unit_of_measurement": "kWh",
+            "icon": "mdi:flash",
+            "device_class": "energy"
+        },
+        "kepco_realtime_usage"
+    )
+    update_ha_sensor(
+        "sensor.kepco_predicted_usage",
+        predicted_usage,
+        {
+            "friendly_name": "예상 사용량",
+            "unit_of_measurement": "kWh",
+            "icon": "mdi:flash-alert",
+            "device_class": "energy"
+        },
+        "kepco_predicted_usage"
+    )
+    update_ha_sensor(
+        "sensor.kepco_realtime_fee",
+        realtime_fee,
+        {
+            "friendly_name": "실시간 요금",
+            "unit_of_measurement": "원",
+            "icon": "mdi:cash",
+            "device_class": "monetary"
+        },
+        "kepco_realtime_fee"
+    )
+    update_ha_sensor(
+        "sensor.kepco_predicted_fee",
+        predicted_fee,
+        {
+            "friendly_name": "예상 요금",
+            "unit_of_measurement": "원",
+            "icon": "mdi:cash-multiple",
+            "device_class": "monetary"
+        },
+        "kepco_predicted_fee"
+    )
 
     if has_thead:
-        update_ha_sensor("sensor.kepco_generation_amount", round(generation_amount, 3), {"friendly_name": "발전량", "unit_of_measurement": "kWh", "icon": "mdi:solar-power"})
-        update_ha_sensor("sensor.kepco_net_realtime_charge", net_realtime_charge, {"friendly_name": "상계 후 요금", "unit_of_measurement": "원", "icon": "mdi:cash-minus"})
+        update_ha_sensor(
+            "sensor.kepco_generation_amount",
+            round(generation_amount, 3),
+            {
+                "friendly_name": "발전량",
+                "unit_of_measurement": "kWh",
+                "icon": "mdi:solar-power",
+                "device_class":
+                "energy"
+            },
+            "kepco_generation_amount"
+        )
+        update_ha_sensor(
+            "sensor.kepco_net_realtime_charge",
+            net_realtime_charge,
+            {
+                "friendly_name": "상계 후 요금",
+                "unit_of_measurement": "원",
+                "icon": "mdi:cash-minus",
+                "device_class": "monetary"
+            },
+            "kepco_net_realtime_charge"
+        )
 
     print("Home Assistant sensors updated.")
 
