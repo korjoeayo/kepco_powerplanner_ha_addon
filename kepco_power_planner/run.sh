@@ -7,7 +7,7 @@ ACCOUNTS=$(jq --compact-output '.accounts' /data/options.json)
 UPDATE_INTERVAL_MINUTES=$(jq --raw-output '.update_interval' /data/options.json)
 
 # Export accounts for the python script
-export ACCOUNTS
+export ACCOUNTS="${ACCOUNTS}"
 
 # Convert interval to seconds
 UPDATE_INTERVAL_SECONDS=$((UPDATE_INTERVAL_MINUTES * 60))

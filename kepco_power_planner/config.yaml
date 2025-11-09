@@ -1,8 +1,7 @@
 name: "한전 파워플래너"
 version: "0.1.5"
 slug: "kepco_power_planner"
-description: |
-  한전 파워플래너에서 데이터를 가져오는 애드온입니다.
+description: "한전 파워플래너에서 데이터를 가져오는 애드온입니다."
 logo: true
 arch:
   - "aarch64"
@@ -14,6 +13,7 @@ init: false
 api: true
 hassio_api: true
 homeassistant_api: true
+environment: true
 options:
   accounts: []
   update_interval: 30
