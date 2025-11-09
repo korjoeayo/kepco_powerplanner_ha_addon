@@ -48,6 +48,7 @@ def create_sensor_set(cust_no, sensor_data):
         "predicted_fee": sensor_data.get("estimated_charge"),
         "generation_amount": sensor_data.get("generation_amount"),
         "net_realtime_charge": sensor_data.get("net_realtime_charge"),
+        "net_usage_after_compensation": sensor_data.get("net_usage_after_compensation"),
     }
 
     sensors = {
@@ -57,6 +58,7 @@ def create_sensor_set(cust_no, sensor_data):
         "predicted_fee": {"name": "예상 요금", "unit": "원", "icon": "mdi:cash-multiple", "device_class": "monetary"},
         "generation_amount": {"name": "발전량", "unit": "kWh", "icon": "mdi:solar-power", "device_class": "energy"},
         "net_realtime_charge": {"name": "상계 후 요금", "unit": "원", "icon": "mdi:cash-minus", "device_class": "monetary"},
+        "net_usage_after_compensation": {"name": "상계 후 사용량", "unit": "kWh", "icon": "mdi:transmission-tower", "device_class": "energy"},
     }
 
     for sensor_type, data in ha_sensor_data.items():
@@ -135,8 +137,9 @@ def scrape_customer_data(driver, wait):
             net_usage_str = last_td.text.replace('kWh', '').strip()
             net_usage = float(net_usage_str.replace(',', ''))
             
-            generation_amount = sensor_data["realtime_usage"] - net_usage
-            sensor_data["generation_amount"] = round(generation_amount, 3)
+            net_usage_after_compensation = sensor_data["realtime_usage"] - net_usage
+            sensor_data["net_usage_after_compensation"] = round(net_usage_after_compensation, 3)
+            sensor_data["generation_amount"] = round(net_usage, 3)
 
             charge_row = driver.find_element(By.XPATH, "//tfoot//th[contains(text(), '실시간 요금')]/..")
             last_charge_td = charge_row.find_elements(By.TAG_NAME, 'td')[-1]
