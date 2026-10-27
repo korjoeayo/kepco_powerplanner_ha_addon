@@ -137,9 +137,9 @@ def scrape_customer_data(driver, wait):
             net_usage_str = last_td.text.replace('kWh', '').strip()
             net_usage = float(net_usage_str.replace(',', ''))
             
-            net_usage_after_compensation = sensor_data["realtime_usage"] - net_usage
-            sensor_data["net_usage_after_compensation"] = round(net_usage_after_compensation, 3)
-            sensor_data["generation_amount"] = round(net_usage, 3)
+            generation_amount = max(0.0, sensor_data["realtime_usage"] - net_usage)
+            sensor_data["generation_amount"] = round(generation_amount, 3)
+            sensor_data["net_usage_after_compensation"] = round(net_usage, 3)
 
             charge_row = driver.find_element(By.XPATH, "//tfoot//th[contains(text(), '실시간 요금')]/..")
             last_charge_td = charge_row.find_elements(By.TAG_NAME, 'td')[-1]
@@ -184,8 +184,12 @@ for account in ACCOUNTS:
         wait = WebDriverWait(driver, 20)
 
         # Login
-        wait.until(EC.presence_of_element_located((By.ID, "RSA_USER_ID"))).send_keys(RSA_USER_ID)
-        driver.find_element(By.ID, "RSA_USER_PWD").send_keys(RSA_USER_PWD)
+        id_field = wait.until(EC.presence_of_element_located((By.ID, "RSA_USER_ID")))
+        id_field.clear()
+        id_field.send_keys(RSA_USER_ID)
+        pwd_field = driver.find_element(By.ID, "RSA_USER_PWD")
+        pwd_field.clear()
+        pwd_field.send_keys(RSA_USER_PWD)
         login_button = wait.until(EC.presence_of_element_located((By.ID, "intro_btn_indi")))
         driver.execute_script("arguments[0].click();", login_button)
 
